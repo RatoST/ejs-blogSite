@@ -1,0 +1,18 @@
+<%- include("partials/header"); -%>
+<h1>Home</h1>
+<!-- pass variable and render from app.js under StartingContent -->
+<p> <%= startingContent %> </p>
+
+<% homePosts.forEach(function(post){ %>
+  <h1> <%= post.title %></h1>
+  <p>
+    <%= truncate(post.content, 100); %>
+    <%# Link to template page without fix url %>
+    <a href="/posts/<%= post.title%>">Read More</a>
+  </p>
+
+<% }); %>
+
+
+
+<%- include("partials/footer"); -%>
