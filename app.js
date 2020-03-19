@@ -3,6 +3,8 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const ejs = require("ejs");
+// require mongoose
+const mongoose = require("mongoose");
 const _ = require("lodash");
 truncate = require("truncate");
 
@@ -19,16 +21,35 @@ app.use(bodyParser.urlencoded({
 }));
 app.use(express.static("public"));
 
-//global variable containing array for posts
-let posts = [];
+//connect mongoose
+mongoose.connect("mongodb://localhost:27017/blogDB", {
+  useUnifiedTopology:true,
+  useNewUrlParser:true,
+  useCreateIndex:true
+})
+.then(() => console.log('DB connected!'))
+.catch(err => {
+  console.log(`DB Connection Error: ${err.message}`);
+});
+
+//Scheme for db
+const postSchema = {
+  title:String,
+  content:String
+};
+
+//Mongoose model
+const Post = mongoose.model("Post", postSchema);
+
 
 // set Home.ejs as home page + render homeStartingContent
 app.get("/", function(req, res) {
-  res.render("home", {
-    startingContent: homeStartingContent,
-    homePosts: posts
+  Post.find({}, function(err, posts){
+    res.render("home", {
+      startingContent: homeStartingContent,
+      posts: posts
   });
-
+});
 });
 
 // set About.ejs as about page + render
@@ -53,35 +74,30 @@ app.get("/compose", function(req, res) {
 
 //Post new input with submit
 app.post("/compose", function(req, res) {
-  const postForm = {
+  const post = new Post ({
     title: req.body.postTitle,
-    content: req.body.postText
-  };
+    content: req.body.postBody
+  });
   //push postForm to global variable array type posts
-  posts.push(postForm);
-  res.redirect("/");
-});
-
-
-//Express routing from URL
-app.get("/posts/:postName", function(req, res) {
-  //lodash function inside parameter of input in url
-  const requestedTitle = _.lowerCase(req.params.postName);
-  //Search through array posts
-  posts.forEach(function(post) {
-    const storedTitle = _.lowerCase(post.title);
-    //compare asked path with array
-    if (storedTitle === requestedTitle) {
-      //set Post page to render
-        res.render("post", {
-          title:post.title,
-          content:post.content
-        });
+  post.save(function(err){
+    if(!err){
+    res.redirect("/");
     }
   });
-
 });
 
+//Express routing from URL
+app.get("/posts/:postId", function(req, res) {
+  //lodash function inside parameter of input in url
+  const requestedPostId = req.params.postId;
+  //Search through array posts
+  Post.findOne({_id:requestedPostId}, function(err,post){
+    res.render("post", {
+      title:post.title,
+      content:post.content
+  });
+  });
+});
 
 app.listen(3000, function() {
   console.log("Server started on port 3000");
